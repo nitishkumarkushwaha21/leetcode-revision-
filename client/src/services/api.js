@@ -1,34 +1,19 @@
 import axios from 'axios';
 
-// Create axios instance with base configuration
 const api = axios.create({
-  baseURL: '/api', // This will be proxied to the backend
-  headers: {
-    'Content-Type': 'application/json',
-  },
+    baseURL: '/api', // Proxy will handle localhost:5001
+    headers: {
+        'Content-Type': 'application/json'
+    }
 });
 
-// Request interceptor to add auth token if available
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Response interceptor for error handling
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error('API Error:', error);
-    return Promise.reject(error);
-  }
-);
+export const fileService = {
+    getFileSystem: () => api.get('/files'),
+    createFileNode: (name, type, parentId) => api.post('/files', { name, type, parentId }),
+    deleteFileNode: (id) => api.delete(`/files/${id}`),
+    updateFileNode: (id, data) => api.put(`/files/${id}`, data),
+    getProblem: (fileId) => api.get(`/files/${fileId}/problem`),
+    updateProblem: (fileId, data) => api.put(`/files/${fileId}/problem`, data)
+};
 
 export default api;
