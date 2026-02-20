@@ -8,7 +8,7 @@ import useFileStore from "../../store/useFileStore";
 import { fileService } from "../../services/api";
 import CodeEditor from "../editor/CodeEditor";
 import { clsx } from "clsx";
-import { Loader2 } from "lucide-react";
+import { Loader2, ExternalLink } from "lucide-react";
 
 const TABS = [
   { id: "brute", label: "Brute Force" },
@@ -49,7 +49,7 @@ const ProblemWorkspace = () => {
 
   useEffect(() => {
     if (activeFile && activeFile.link !== localLink && !isImporting) {
-       setLocalLink(activeFile.link || "");
+      setLocalLink(activeFile.link || "");
     }
   }, [activeFile?.link]);
 
@@ -60,10 +60,21 @@ const ProblemWorkspace = () => {
     }
   }, [id, setActiveFile, activeFileId]);
 
+  // Wait for file system to load before declaring a file missing
+  const { isLoading, fileSystem: allFiles } = useFileStore();
+  if (isLoading || (allFiles.length === 0 && id)) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-gray-500 bg-neutral-900">
+        <Loader2 className="animate-spin mb-4" size={32} />
+        Loading workspace...
+      </div>
+    );
+  }
+
   if (!activeFile)
     return (
       <div className="h-full flex items-center justify-center text-gray-500 bg-neutral-900">
-        Problem not found or loading...
+        Problem not found.
       </div>
     );
 
@@ -125,33 +136,42 @@ const ProblemWorkspace = () => {
                     </span>
                   ))}
               </div>
-              <input
-                key={`link-${activeFile.id}`}
-                type="text"
-                placeholder="Paste LeetCode Link here..."
-                className={`bg-neutral-950 border rounded px-3 py-1 text-xs outline-none w-full transition-colors ${
-                  isImporting
-                    ? "border-yellow-500 text-yellow-400 animate-pulse"
-                    : "border-neutral-800 text-gray-400 focus:text-white focus:border-blue-500"
-                }`}
-                value={localLink}
-                disabled={isImporting}
-                onChange={(e) => {
-                  setLocalLink(e.target.value);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.target.blur();
-                  }
-                }}
-                onBlur={async (e) => {
-                  const newLink = e.target.value.trim();
-                  
-                  if (newLink !== activeFile.link) {
-                     useFileStore.getState().updateFileLink(activeFile.id, newLink);
-                  }
+              <div className="flex gap-2 items-center">
+                <input
+                  key={`link-${activeFile.id}`}
+                  type="text"
+                  placeholder="Paste LeetCode Link here..."
+                  className={`bg-neutral-950 border rounded px-3 py-1 text-xs outline-none flex-1 transition-colors ${
+                    isImporting
+                      ? "border-yellow-500 text-yellow-400 animate-pulse"
+                      : "border-neutral-800 text-gray-400 focus:text-white focus:border-blue-500"
+                  }`}
+                  value={localLink}
+                  disabled={isImporting}
+                  onChange={(e) => {
+                    setLocalLink(e.target.value);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.target.blur();
+                    }
+                  }}
+                  onBlur={async (e) => {
+                    const newLink = e.target.value.trim();
 
-                  if (newLink && newLink.includes("leetcode.com/problems/")) {
+                    if (newLink !== activeFile.link) {
+                      useFileStore
+                        .getState()
+                        .updateFileLink(activeFile.id, newLink);
+                    }
+
+                    // Only fetch from LeetCode if it's a valid link, AND we actually changed the link OR we don't have a description yet
+                    const shouldImport =
+                      newLink &&
+                      newLink.includes("leetcode.com/problems/") &&
+                      (newLink !== activeFile.link || !activeFile.description);
+
+                    if (shouldImport) {
                       setIsImporting(true);
                       try {
                         console.log("🚀 Starting LeetCode import:", newLink);
@@ -177,17 +197,37 @@ const ProblemWorkspace = () => {
 
                         console.log("💾 Problem data saved successfully");
 
-                        await useFileStore.getState().renameItem(activeFile.id, problemData.title);
-                        await useFileStore.getState().setActiveFile(activeFile.id);
+                        await useFileStore
+                          .getState()
+                          .renameItem(activeFile.id, problemData.title);
+                        await useFileStore
+                          .getState()
+                          .setActiveFile(activeFile.id);
                       } catch (error) {
                         console.error("❌ Failed to import problem:", error);
-                        alert(`Failed to import problem: ${error.message || "Unknown error"}`);
+                        alert(
+                          `Failed to import problem: ${error.message || "Unknown error"}`,
+                        );
                       } finally {
                         setIsImporting(false);
                       }
-                  }
-                }}
-              />
+                    }
+                  }}
+                />
+                {/* Open on LeetCode button — shown whenever a valid link exists */}
+                {localLink && localLink.includes("leetcode.com") && (
+                  <a
+                    href={localLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium bg-orange-500/15 hover:bg-orange-500/25 text-orange-400 border border-orange-500/20 transition-colors whitespace-nowrap"
+                    title="Open on LeetCode"
+                  >
+                    <ExternalLink size={11} />
+                    LeetCode
+                  </a>
+                )}
+              </div>
             </div>
           </div>
 
@@ -249,46 +289,106 @@ const ProblemWorkspace = () => {
 
           {/* Manual Analysis Input */}
           <div className="bg-neutral-900 border-t border-neutral-800 p-3">
-              <div className="flex gap-4 w-full">
-                <div className="flex items-center gap-2 flex-1 bg-neutral-950 p-2 rounded border border-neutral-800">
-                  <span className="text-purple-400 font-bold text-xs uppercase tracking-wider whitespace-nowrap">Time Complexity:</span>
-                  <select
-                    value={activeFile.analysis?.time || ""}
-                    onChange={handleTimeChange}
-                    className="bg-transparent border-none text-white font-mono text-sm w-full focus:outline-none cursor-pointer appearance-none"
-                    style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
+            <div className="flex gap-4 w-full">
+              <div className="flex items-center gap-2 flex-1 bg-neutral-950 p-2 rounded border border-neutral-800">
+                <span className="text-purple-400 font-bold text-xs uppercase tracking-wider whitespace-nowrap">
+                  Time Complexity:
+                </span>
+                <select
+                  value={activeFile.analysis?.time || ""}
+                  onChange={handleTimeChange}
+                  className="bg-transparent border-none text-white font-mono text-sm w-full focus:outline-none cursor-pointer appearance-none"
+                  style={{ WebkitAppearance: "none", MozAppearance: "none" }}
+                >
+                  <option
+                    value=""
+                    disabled
+                    className="bg-neutral-900 text-gray-500"
                   >
-                    <option value="" disabled className="bg-neutral-900 text-gray-500">Select...</option>
-                    <option value="O(1)" className="bg-neutral-900 text-white">O(1)</option>
-                    <option value="O(log N)" className="bg-neutral-900 text-white">O(log N)</option>
-                    <option value="O(N)" className="bg-neutral-900 text-white">O(N)</option>
-                    <option value="O(N log N)" className="bg-neutral-900 text-white">O(N log N)</option>
-                    <option value="O(N^2)" className="bg-neutral-900 text-white">O(N^2)</option>
-                    <option value="O(N^3)" className="bg-neutral-900 text-white">O(N^3)</option>
-                    <option value="O(2^N)" className="bg-neutral-900 text-white">O(2^N)</option>
-                    <option value="O(N!)" className="bg-neutral-900 text-white">O(N!)</option>
-                  </select>
-                </div>
-                <div className="flex items-center gap-2 flex-1 bg-neutral-950 p-2 rounded border border-neutral-800">
-                  <span className="text-purple-400 font-bold text-xs uppercase tracking-wider whitespace-nowrap">Space Complexity:</span>
-                  <select
-                    value={activeFile.analysis?.space || ""}
-                    onChange={handleSpaceChange}
-                    className="bg-transparent border-none text-white font-mono text-sm w-full focus:outline-none cursor-pointer appearance-none"
-                    style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
+                    Select...
+                  </option>
+                  <option value="O(1)" className="bg-neutral-900 text-white">
+                    O(1)
+                  </option>
+                  <option
+                    value="O(log N)"
+                    className="bg-neutral-900 text-white"
                   >
-                    <option value="" disabled className="bg-neutral-900 text-gray-500">Select...</option>
-                    <option value="O(1)" className="bg-neutral-900 text-white">O(1)</option>
-                    <option value="O(log N)" className="bg-neutral-900 text-white">O(log N)</option>
-                    <option value="O(N)" className="bg-neutral-900 text-white">O(N)</option>
-                    <option value="O(N log N)" className="bg-neutral-900 text-white">O(N log N)</option>
-                    <option value="O(N^2)" className="bg-neutral-900 text-white">O(N^2)</option>
-                    <option value="O(N^3)" className="bg-neutral-900 text-white">O(N^3)</option>
-                    <option value="O(2^N)" className="bg-neutral-900 text-white">O(2^N)</option>
-                    <option value="O(N!)" className="bg-neutral-900 text-white">O(N!)</option>
-                  </select>
-                </div>
+                    O(log N)
+                  </option>
+                  <option value="O(N)" className="bg-neutral-900 text-white">
+                    O(N)
+                  </option>
+                  <option
+                    value="O(N log N)"
+                    className="bg-neutral-900 text-white"
+                  >
+                    O(N log N)
+                  </option>
+                  <option value="O(N^2)" className="bg-neutral-900 text-white">
+                    O(N^2)
+                  </option>
+                  <option value="O(N^3)" className="bg-neutral-900 text-white">
+                    O(N^3)
+                  </option>
+                  <option value="O(2^N)" className="bg-neutral-900 text-white">
+                    O(2^N)
+                  </option>
+                  <option value="O(N!)" className="bg-neutral-900 text-white">
+                    O(N!)
+                  </option>
+                </select>
               </div>
+              <div className="flex items-center gap-2 flex-1 bg-neutral-950 p-2 rounded border border-neutral-800">
+                <span className="text-purple-400 font-bold text-xs uppercase tracking-wider whitespace-nowrap">
+                  Space Complexity:
+                </span>
+                <select
+                  value={activeFile.analysis?.space || ""}
+                  onChange={handleSpaceChange}
+                  className="bg-transparent border-none text-white font-mono text-sm w-full focus:outline-none cursor-pointer appearance-none"
+                  style={{ WebkitAppearance: "none", MozAppearance: "none" }}
+                >
+                  <option
+                    value=""
+                    disabled
+                    className="bg-neutral-900 text-gray-500"
+                  >
+                    Select...
+                  </option>
+                  <option value="O(1)" className="bg-neutral-900 text-white">
+                    O(1)
+                  </option>
+                  <option
+                    value="O(log N)"
+                    className="bg-neutral-900 text-white"
+                  >
+                    O(log N)
+                  </option>
+                  <option value="O(N)" className="bg-neutral-900 text-white">
+                    O(N)
+                  </option>
+                  <option
+                    value="O(N log N)"
+                    className="bg-neutral-900 text-white"
+                  >
+                    O(N log N)
+                  </option>
+                  <option value="O(N^2)" className="bg-neutral-900 text-white">
+                    O(N^2)
+                  </option>
+                  <option value="O(N^3)" className="bg-neutral-900 text-white">
+                    O(N^3)
+                  </option>
+                  <option value="O(2^N)" className="bg-neutral-900 text-white">
+                    O(2^N)
+                  </option>
+                  <option value="O(N!)" className="bg-neutral-900 text-white">
+                    O(N!)
+                  </option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
       </Panel>

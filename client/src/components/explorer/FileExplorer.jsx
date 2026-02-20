@@ -9,7 +9,9 @@ import {
   Edit2,
   MoreHorizontal,
   X,
+  Youtube,
 } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 import useFileStore from "../../store/useFileStore";
 
 const FileItem = ({ item, depth = 0 }) => {
@@ -168,6 +170,9 @@ const FileExplorer = ({ onClose }) => {
   const { fileSystem, loadFileSystem, addItem, expandedFolders } =
     useFileStore();
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isPlaylistActive = location.pathname === "/playlist";
 
   useEffect(() => {
     loadFileSystem();
@@ -202,26 +207,26 @@ const FileExplorer = ({ onClose }) => {
         <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">
           Explorer
         </div>
-          <div className="relative flex items-center gap-1">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowAddMenu(!showAddMenu);
-              }}
-              className="p-1 hover:bg-neutral-700 rounded text-gray-400 hover:text-white transition-colors"
-              title="New Item"
-            >
-              <Plus size={16} />
-            </button>
-            <button
-              onClick={onClose}
-              className="p-1 hover:bg-neutral-700 rounded text-gray-400 hover:text-white transition-colors"
-              title="Close Explorer"
-            >
-              <X size={16} />
-            </button>
+        <div className="relative flex items-center gap-1">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowAddMenu(!showAddMenu);
+            }}
+            className="p-1 hover:bg-neutral-700 rounded text-gray-400 hover:text-white transition-colors"
+            title="New Item"
+          >
+            <Plus size={16} />
+          </button>
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-neutral-700 rounded text-gray-400 hover:text-white transition-colors"
+            title="Close Explorer"
+          >
+            <X size={16} />
+          </button>
 
-            {showAddMenu && (
+          {showAddMenu && (
             <div className="absolute right-0 top-8 bg-neutral-800 border border-neutral-700 rounded shadow-lg z-50 py-1 min-w-28">
               <button
                 onClick={handleAddFile}
@@ -243,6 +248,22 @@ const FileExplorer = ({ onClose }) => {
         {fileSystem.map((item) => (
           <FileItem key={item.id} item={item} />
         ))}
+      </div>
+
+      {/* ── Playlist Feature Nav ── */}
+      <div className="border-t border-neutral-800 p-2">
+        <button
+          onClick={() => navigate("/playlist")}
+          className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium transition-colors ${
+            isPlaylistActive
+              ? "bg-blue-600/20 text-blue-400 border border-blue-500/30"
+              : "text-gray-500 hover:bg-neutral-800 hover:text-gray-300"
+          }`}
+          title="AI Playlist Sheet Generator"
+        >
+          <Youtube size={14} />
+          Playlist Sheets
+        </button>
       </div>
     </div>
   );
