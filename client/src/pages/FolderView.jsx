@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import useFileStore from '../../store/useFileStore';
+import useFileStore from '../store/useFileStore';
 import { FileCode, Folder, RotateCcw, Trash2, Edit2, CheckCircle, Circle, ArrowLeft } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,8 +17,70 @@ const FolderView = () => {
     const [newItemName, setNewItemName] = useState('');
     const [newItemType, setNewItemType] = useState('file'); // 'file' or 'folder'
 
-    // ... existing handlers ...
+    // Recursive search to find the current folder
+    const findNode = (nodes, targetId) => {
+        for (const node of nodes) {
+            if (node.id == targetId) return node;
+            if (node.children) {
+                const found = findNode(node.children, targetId);
+                if (found) return found;
+            }
+        }
+        return null;
+    };
 
+    const currentFolder = findNode(fileSystem, id);
+
+    // If folder not found (or root), maybe redirect or show error?
+    // For now assuming it exists.
+
+    const handleNavigate = (item) => {
+        if (item.type === 'folder') {
+            navigate(`/folder/${item.id}`);
+        } else {
+            navigate(`/problem/${item.id}`);
+        }
+    };
+
+    const handleToggleRevision = async (e, item) => {
+        e.stopPropagation();
+        await useFileStore.getState().toggleFileRevision(item.id);
+    };
+
+    const startRenaming = (e, item) => {
+        e.stopPropagation();
+        setRenamingId(item.id);
+        setRenameValue(item.name);
+    };
+
+    const handleRenameSubmit = async (e) => {
+        if (e.key === 'Enter') {
+            e.stopPropagation();
+            if (renamingId && renameValue.trim()) {
+                try {
+                     await useFileStore.getState().renameItem(renamingId, renameValue);
+                } catch (err) {
+                    console.error("Rename failed", err);
+                }
+            }
+            setRenamingId(null);
+        } else if (e.key === 'Escape') {
+            setRenamingId(null);
+        }
+    };
+
+    const handleResetRevisions = async () => {
+        if (!window.confirm("Are you sure you want to reset all revision status in this folder?")) return;
+        
+        if (currentFolder.children) {
+            for (const child of currentFolder.children) {
+                if (child.type === 'file' && child.isRevised) {
+                    await useFileStore.getState().toggleFileRevision(child.id);
+                }
+            }
+        }
+    };
+    
     const handleCreateItem = async (e) => {
         e.preventDefault();
         if (!newItemName.trim()) return;
