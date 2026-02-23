@@ -1,15 +1,31 @@
 const { Sequelize } = require('sequelize');
+const dns = require('dns');
+const pg = require('pg');
 require('dotenv').config();
 
-const sequelize = new Sequelize(
-    process.env.DB_NAME || 'algonote',
-    process.env.DB_USER || 'postgres',
-    process.env.DB_PASSWORD || 'Nikuku@30',
-    {
-        host: process.env.DB_HOST || 'localhost',
-        dialect: 'postgres',
-        logging: false,
-    }
-);
+// Force pg to use IPv4 only — prevents Happy Eyeballs ETIMEDOUT in Docker/WSL2
+pg.defaults.lookup = (hostname, options, callback) => {
+  dns.lookup(hostname, { ...options, family: 4 }, callback);
+};
+
+console.log('[file-service] DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
+
+const sequelize = process.env.DATABASE_URL
+  ? new Sequelize(process.env.DATABASE_URL, {
+      dialect: 'postgres',
+      dialectOptions: {
+        ssl: { require: true, rejectUnauthorized: false }
+      },
+      logging: false,
+    })
+  : new Sequelize('neondb', 'neondb_owner', 'npg_1hg3AXQFYyfU', {
+      dialect: 'postgres',
+      host: 'ep-summer-queen-aifl7d78-pooler.c-4.us-east-1.aws.neon.tech',
+      port: 5432,
+      dialectOptions: {
+        ssl: { require: true, rejectUnauthorized: false }
+      },
+      logging: false,
+    });
 
 module.exports = sequelize;

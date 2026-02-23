@@ -27,7 +27,7 @@ const Layout = () => {
             )}
 
             {/* Main Content Area */}
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 h-full min-h-0 overflow-y-auto relative">
                 <Outlet />
             </div>
         </div>

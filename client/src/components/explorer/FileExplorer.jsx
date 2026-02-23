@@ -10,11 +10,15 @@ import {
   MoreHorizontal,
   X,
   Youtube,
+  BarChart2,
+  Home,
+  UserPlus
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import useFileStore from "../../store/useFileStore";
 
 const FileItem = ({ item, depth = 0 }) => {
+  const navigate = useNavigate();
   const {
     toggleFolder,
     setActiveFile,
@@ -43,8 +47,10 @@ const FileItem = ({ item, depth = 0 }) => {
     e.stopPropagation();
     if (item.type === "folder") {
       toggleFolder(item.id);
+      navigate(`/folder/${item.id}`);
     } else {
       setActiveFile(item.id);
+      navigate(`/problem/${item.id}`);
     }
   };
 
@@ -85,8 +91,8 @@ const FileItem = ({ item, depth = 0 }) => {
     <div className="relative">
       <div
         className={`
-          flex items-center py-1 px-2 cursor-pointer text-sm select-none relative group
-          ${isActive ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-neutral-800"}
+          flex items-center py-1.5 px-2 cursor-pointer text-base select-none relative group transition-colors
+          ${isActive ? "bg-neutral-800 text-white font-medium" : "text-gray-300 hover:bg-neutral-800"}
         `}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
         onClick={handleClick}
@@ -101,11 +107,11 @@ const FileItem = ({ item, depth = 0 }) => {
             ))}
         </span>
 
-        <span className="mr-2 text-blue-400">
+        <span className="mr-2">
           {item.type === "folder" ? (
-            <Folder size={16} />
+            <Folder size={18} className="text-blue-500" />
           ) : (
-            <FileCode size={16} className="text-yellow-400" />
+            <FileCode size={18} className="text-orange-500" />
           )}
         </span>
 
@@ -173,6 +179,7 @@ const FileExplorer = ({ onClose }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isPlaylistActive = location.pathname === "/playlist";
+  const isProfileActive = location.pathname === "/profile-analysis";
 
   useEffect(() => {
     loadFileSystem();
@@ -203,66 +210,97 @@ const FileExplorer = ({ onClose }) => {
 
   return (
     <div className="h-full bg-neutral-900 border-r border-neutral-800 select-none">
-      <div className="flex items-center justify-between p-2 border-b border-neutral-800">
-        <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-          Explorer
+      <div 
+        className="flex items-center justify-between p-3 border-b border-neutral-800 cursor-pointer hover:bg-neutral-800/50 transition-colors"
+        onClick={() => navigate("/")}
+      >
+        <div className="flex items-center gap-2 text-sm font-bold text-gray-300 uppercase tracking-wider">
+          <Home size={16} />
+          <span>Home (Explorer)</span>
         </div>
-        <div className="relative flex items-center gap-1">
+        <div className="relative flex items-center gap-2">
           <button
             onClick={(e) => {
               e.stopPropagation();
               setShowAddMenu(!showAddMenu);
             }}
-            className="p-1 hover:bg-neutral-700 rounded text-gray-400 hover:text-white transition-colors"
+            className="p-1.5 hover:bg-neutral-700 rounded text-gray-400 hover:text-white transition-colors"
             title="New Item"
           >
-            <Plus size={16} />
+            <Plus size={18} />
           </button>
           <button
-            onClick={onClose}
-            className="p-1 hover:bg-neutral-700 rounded text-gray-400 hover:text-white transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="p-1.5 hover:bg-neutral-700 rounded text-gray-400 hover:text-white transition-colors"
             title="Close Explorer"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
 
           {showAddMenu && (
-            <div className="absolute right-0 top-8 bg-neutral-800 border border-neutral-700 rounded shadow-lg z-50 py-1 min-w-28">
+            <div className="absolute right-0 top-10 bg-neutral-800 border border-neutral-700 rounded shadow-lg z-50 py-1 min-w-32">
               <button
                 onClick={handleAddFile}
-                className="w-full text-left px-3 py-1 hover:bg-neutral-700 text-sm flex items-center gap-2"
+                className="w-full text-left px-4 py-2 hover:bg-neutral-700 text-sm flex items-center gap-2 text-gray-200"
               >
-                <FileCode size={12} /> New File
+                <FileCode size={14} className="text-orange-500" /> New File
               </button>
               <button
                 onClick={handleAddFolder}
-                className="w-full text-left px-3 py-1 hover:bg-neutral-700 text-sm flex items-center gap-2"
+                className="w-full text-left px-4 py-2 hover:bg-neutral-700 text-sm flex items-center gap-2 text-gray-200"
               >
-                <Folder size={12} /> New Folder
+                <Folder size={14} className="text-blue-500" /> New Folder
               </button>
             </div>
           )}
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto py-2">
         {fileSystem.map((item) => (
           <FileItem key={item.id} item={item} />
         ))}
       </div>
 
-      {/* ── Playlist Feature Nav ── */}
-      <div className="border-t border-neutral-800 p-2">
+      {/* ── Playlist & Analysis Feature Nav ── */}
+      <div className="border-t border-neutral-800 p-3 space-y-3">
+        <button
+          onClick={() => navigate("/profile-analysis")}
+          className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
+            isProfileActive
+              ? "bg-purple-600/20 text-purple-400 border border-purple-500/30 shadow-sm"
+              : "text-gray-300 hover:bg-neutral-800 hover:text-white"
+          }`}
+          title="Profile Analysis"
+        >
+          <BarChart2 size={16} />
+          Profile Analysis
+        </button>
         <button
           onClick={() => navigate("/playlist")}
-          className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium transition-colors ${
+          className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
             isPlaylistActive
-              ? "bg-blue-600/20 text-blue-400 border border-blue-500/30"
-              : "text-gray-500 hover:bg-neutral-800 hover:text-gray-300"
+              ? "bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-sm"
+              : "text-gray-300 hover:bg-neutral-800 hover:text-white"
           }`}
           title="AI Playlist Sheet Generator"
         >
-          <Youtube size={14} />
+          <Youtube size={16} />
           Playlist Sheets
+        </button>
+      </div>
+
+      {/* ── Account Nav (Dummy UI) ── */}
+      <div className="border-t border-neutral-800 p-3 mt-auto">
+        <button
+          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-md text-sm font-medium text-gray-300 hover:bg-neutral-800 hover:text-white transition-all"
+          title="Login / Sign Up"
+          onClick={() => alert("Login backend not implemented yet!")}
+        >
+          <UserPlus size={16} className="text-emerald-400" />
+          Login / Sign Up
         </button>
       </div>
     </div>

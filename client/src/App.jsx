@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import FolderView from "./pages/FolderView";
 import ProblemWorkspace from "./components/layout/ProblemWorkspace";
 import PlaylistFeaturePage from "./pages/PlaylistFeaturePage";
+import ProfileAnalysisPage from "./pages/profile-analysis/ProfileAnalysisPage";
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="folder/:id" element={<FolderView />} />
         <Route path="problem/:id" element={<ProblemWorkspace />} />
         <Route path="playlist" element={<PlaylistFeaturePage />} />
+        <Route path="profile-analysis" element={<ProfileAnalysisPage />} />
       </Route>
     </Routes>
   );

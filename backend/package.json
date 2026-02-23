@@ -1,0 +1,16 @@
+{
+  "name": "algonote-backend",
+  "version": "1.0.0",
+  "description": "AlgoNote Backend - all microservices",
+  "scripts": {
+    "start:backend": "concurrently \"npm start --prefix gateway\" \"npm start --prefix services/file-service\" \"npm start --prefix services/problem-service\" \"npm start --prefix services/ai-service\" \"npm start --prefix services/youtube-playlist-service\" \"npm start --prefix services/profile-analysis-service\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "dependencies": {
+    "pg": "^8.18.0",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.7"
+  }
+}
